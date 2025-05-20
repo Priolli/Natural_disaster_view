@@ -58,10 +58,20 @@ export function transformEmdatRecord(record: { [key: string]: string }, index: n
 
     const endDate = record['End Date'] ? parseDate(record['End Date']) : undefined;
 
+    // Parse magnitude information
+    let magnitude;
+    if (record['Magnitude'] && record['Magnitude Scale']) {
+      magnitude = {
+        value: parseFloat(record['Magnitude']),
+        scale: record['Magnitude Scale']
+      };
+    }
+
     return {
       id: `emdat-${record['Disaster No'] || index}`,
       name: record['Event Name'] || `${record['Disaster Type']} in ${record['Country']}`,
       type: mapDisasterType(record['Disaster Type'], record['Disaster Subtype']),
+      subType: record['Disaster Subtype'] || undefined,
       startDate: startDate.toISOString(),
       endDate: endDate?.toISOString(),
       country: record['Country'],
@@ -70,17 +80,25 @@ export function transformEmdatRecord(record: { [key: string]: string }, index: n
         lng: geocodeResult.coordinates.lng,
         country: record['Country'],
         region: record['Region'] || undefined,
+        city: record['Location'] || undefined
       },
       impact: {
         deaths: parseInt(record['Total Deaths'] || '0') || 0,
         injured: parseInt(record['No Injured'] || '0') || undefined,
+        missing: parseInt(record['No Missing'] || '0') || undefined,
         affected: parseInt(record['Total Affected'] || '0') || undefined,
+        displaced: parseInt(record['No Displaced'] || '0') || undefined,
         economicLossUSD: parseFloat(record['Total Damages (\'000 US$)']) * 1000 || undefined,
+        insuredLossUSD: parseFloat(record['Insured Damages (\'000 US$)']) * 1000 || undefined,
+        reconstructionCostUSD: parseFloat(record['Reconstruction Costs (\'000 US$)']) * 1000 || undefined,
+        aidContributionUSD: parseFloat(record['Aid Contribution (\'000 US$)']) * 1000 || undefined,
+        infrastructureDamage: record['Infrastructure Damage'] || undefined,
         severityLevel: calculateSeverityLevel(record),
       },
       description: generateDescription(record),
       source: 'EMDAT',
       sourceUrl: 'https://www.emdat.be',
+      magnitude
     };
   } catch (error) {
     console.error('Error transforming record:', error, record);
