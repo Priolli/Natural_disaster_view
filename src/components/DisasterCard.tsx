@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, MapPin, AlertCircle, Info } from 'lucide-react';
+import { Calendar, MapPin, AlertCircle, Info, DollarSign } from 'lucide-react';
 import { DisasterEvent } from '../types/disaster';
 import { isValidCoordinates } from '../services/geocoding';
 
@@ -23,8 +23,33 @@ const DisasterCard: React.FC<DisasterCardProps> = ({ disaster, variant = 'defaul
     });
   };
 
-  const formatNumber = (num: number): string => {
+  const formatNumber = (num: number | undefined): string => {
+    if (!num) return 'N/A';
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  };
+
+  const formatCurrency = (amount: number | undefined): string => {
+    if (!amount) return 'N/A';
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const getDisasterColor = (type: DisasterEvent['type']): string => {
+    const colors = {
+      earthquake: 'bg-earthquake/10 text-earthquake border-earthquake',
+      flood: 'bg-flood/10 text-flood border-flood',
+      hurricane: 'bg-hurricane/10 text-hurricane border-hurricane',
+      wildfire: 'bg-wildfire/10 text-wildfire border-wildfire',
+      tsunami: 'bg-tsunami/10 text-tsunami border-tsunami',
+      drought: 'bg-drought/10 text-drought border-drought',
+      volcano: 'bg-volcano/10 text-volcano border-volcano',
+      other: 'bg-gray-100 text-gray-700 border-gray-300',
+    };
+    return colors[type];
   };
 
   if (variant === 'compact') {
@@ -48,6 +73,11 @@ const DisasterCard: React.FC<DisasterCardProps> = ({ disaster, variant = 'defaul
           <MapPin className="h-3 w-3 mr-1" />
           <span className="line-clamp-1">{disaster.location.country}</span>
         </div>
+
+        <div className="flex items-center text-gray-600 text-xs mb-2">
+          <DollarSign className="h-3 w-3 mr-1" />
+          <span>Total Loss: {formatCurrency(disaster.impact.economicLossUSD)}</span>
+        </div>
         
         <Link
           to={`/event/${disaster.id}`}
@@ -58,20 +88,6 @@ const DisasterCard: React.FC<DisasterCardProps> = ({ disaster, variant = 'defaul
       </div>
     );
   }
-
-  const getDisasterColor = (type: DisasterEvent['type']): string => {
-    const colors = {
-      earthquake: 'bg-earthquake/10 text-earthquake border-earthquake',
-      flood: 'bg-flood/10 text-flood border-flood',
-      hurricane: 'bg-hurricane/10 text-hurricane border-hurricane',
-      wildfire: 'bg-wildfire/10 text-wildfire border-wildfire',
-      tsunami: 'bg-tsunami/10 text-tsunami border-tsunami',
-      drought: 'bg-drought/10 text-drought border-drought',
-      volcano: 'bg-volcano/10 text-volcano border-volcano',
-      other: 'bg-gray-100 text-gray-700 border-gray-300',
-    };
-    return colors[type];
-  };
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden transition-shadow hover:shadow-lg">
@@ -119,20 +135,39 @@ const DisasterCard: React.FC<DisasterCardProps> = ({ disaster, variant = 'defaul
           {disaster.description}
         </p>
 
-        <div className="space-y-2 mb-4">
-          <div className="text-sm">
-            <span className="font-semibold">Deaths:</span> {formatNumber(disaster.impact.deaths)}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="space-y-2">
+            <div className="text-sm">
+              <span className="font-semibold">Deaths:</span> {formatNumber(disaster.impact.deaths)}
+            </div>
+            {disaster.impact.affected && (
+              <div className="text-sm">
+                <span className="font-semibold">Affected:</span> {formatNumber(disaster.impact.affected)}
+              </div>
+            )}
+            {disaster.impact.injured && (
+              <div className="text-sm">
+                <span className="font-semibold">Injured:</span> {formatNumber(disaster.impact.injured)}
+              </div>
+            )}
           </div>
-          {disaster.impact.affected && (
-            <div className="text-sm">
-              <span className="font-semibold">Affected:</span> {formatNumber(disaster.impact.affected)}
-            </div>
-          )}
-          {disaster.impact.economicLossUSD && (
-            <div className="text-sm">
-              <span className="font-semibold">Economic Loss:</span> ${formatNumber(disaster.impact.economicLossUSD)}
-            </div>
-          )}
+          <div className="space-y-2">
+            {disaster.impact.economicLossUSD && (
+              <div className="text-sm">
+                <span className="font-semibold">Total Loss:</span> {formatCurrency(disaster.impact.economicLossUSD)}
+              </div>
+            )}
+            {disaster.impact.insuredLossUSD && (
+              <div className="text-sm">
+                <span className="font-semibold">Insured Loss:</span> {formatCurrency(disaster.impact.insuredLossUSD)}
+              </div>
+            )}
+            {disaster.magnitude && (
+              <div className="text-sm">
+                <span className="font-semibold">Magnitude:</span> {disaster.magnitude.value} {disaster.magnitude.scale}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center justify-between">

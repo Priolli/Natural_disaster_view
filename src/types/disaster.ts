@@ -12,6 +12,10 @@ export interface DisasterEvent {
   source: 'EMDAT' | 'OTHER';
   sourceUrl?: string;
   imageUrl?: string;
+  magnitude?: {
+    value: number;
+    scale: string;
+  };
 }
 
 export type DisasterType = 
@@ -39,6 +43,9 @@ export interface DisasterImpact {
   affected?: number;
   displaced?: number;
   economicLossUSD?: number;
+  insuredLossUSD?: number;
+  reconstructionCostUSD?: number;
+  aidContributionUSD?: number;
   infrastructureDamage?: string;
   severityLevel?: 1 | 2 | 3 | 4 | 5;
 }
@@ -51,5 +58,4 @@ export interface FilterOptions {
   minDeaths?: number;
   minAffected?: number;
   severityLevel?: 1 | 2 | 3 | 4 | 5;
-  impactLevel?: 1 | 2 | 3 | 4 | 5;
 }
