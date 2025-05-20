@@ -45,11 +45,11 @@ export interface DisasterImpact {
 
 export interface FilterOptions {
   types: DisasterType[];
-  subTypes?: string[];
   startDate?: string;
   endDate?: string;
   countries?: string[];
   minDeaths?: number;
   minAffected?: number;
   severityLevel?: 1 | 2 | 3 | 4 | 5;
+  impactLevel?: 1 | 2 | 3 | 4 | 5;
 }
