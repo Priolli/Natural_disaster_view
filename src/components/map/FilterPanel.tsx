@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FilterOptions, DisasterType } from '../../types/disaster';
 import { Filter, X, ChevronDown } from 'lucide-react';
 
 interface FilterPanelProps {
   onFilterChange: (filters: FilterOptions) => void;
   initialFilters?: FilterOptions;
+  availableSubTypes?: string[];
 }
 
 const FilterPanel: React.FC<FilterPanelProps> = ({
   onFilterChange,
   initialFilters = { types: [] },
+  availableSubTypes = [],
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>(initialFilters);
@@ -20,9 +22,9 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
     { label: 'Flood', value: 'flood', color: 'bg-flood' },
     { label: 'Hurricane', value: 'hurricane', color: 'bg-hurricane' },
     { label: 'Wildfire', value: 'wildfire', color: 'bg-wildfire' },
-    { label: 'Tsunami', value: 'tsunami', color: 'bg-tsunami' },
     { label: 'Drought', value: 'drought', color: 'bg-drought' },
     { label: 'Volcano', value: 'volcano', color: 'bg-volcano' },
+    { label: 'Other', value: 'other', color: 'bg-gray-500' },
   ];
 
   const handleTypeChange = (type: DisasterType) => {
@@ -31,6 +33,16 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
       : [...filters.types, type];
 
     const newFilters = { ...filters, types: newTypes };
+    setFilters(newFilters);
+    onFilterChange(newFilters);
+  };
+
+  const handleSubTypeChange = (subType: string) => {
+    const newSubTypes = filters.subTypes?.includes(subType)
+      ? filters.subTypes.filter((t) => t !== subType)
+      : [...(filters.subTypes || []), subType];
+
+    const newFilters = { ...filters, subTypes: newSubTypes };
     setFilters(newFilters);
     onFilterChange(newFilters);
   };
@@ -127,6 +139,34 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                 ))}
               </div>
             </div>
+
+            {/* Disaster Subtypes */}
+            {availableSubTypes.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Disaster Subtype
+                </label>
+                <div className="space-y-2">
+                  {availableSubTypes.map((subType) => (
+                    <div key={subType} className="flex items-center">
+                      <input
+                        id={`subtype-${subType}`}
+                        type="checkbox"
+                        className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                        checked={filters.subTypes?.includes(subType)}
+                        onChange={() => handleSubTypeChange(subType)}
+                      />
+                      <label
+                        htmlFor={`subtype-${subType}`}
+                        className="ml-2 text-sm text-gray-700"
+                      >
+                        {subType}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Date Range */}
             <div>
