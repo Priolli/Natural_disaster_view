@@ -1,0 +1,48 @@
+{
+  "regions": {
+    "Minas Gerais": { "lat": -18.5122, "lng": -44.5550 },
+    "Amazonas": { "lat": -3.4168, "lng": -65.8561 },
+    "Pernambuco": { "lat": -8.8137, "lng": -36.9541 },
+    "California": { "lat": 36.7783, "lng": -119.4179 },
+    "Texas": { "lat": 31.9686, "lng": -99.9018 },
+    "Florida": { "lat": 27.6648, "lng": -81.5158 },
+    "New South Wales": { "lat": -33.8688, "lng": 151.2093 },
+    "Victoria": { "lat": -37.8136, "lng": 144.9631 },
+    "Queensland": { "lat": -20.9176, "lng": 142.7028 },
+    "Gujarat": { "lat": 22.2587, "lng": 71.1924 },
+    "Maharashtra": { "lat": 19.7515, "lng": 75.7139 },
+    "Bihar": { "lat": 25.0961, "lng": 85.3131 },
+    "Sichuan": { "lat": 30.6171, "lng": 102.7103 },
+    "Yunnan": { "lat": 24.4753, "lng": 101.3431 },
+    "Guangdong": { "lat": 23.3790, "lng": 113.7633 }
+  },
+  "countries": {
+    "Brazil": { "lat": -14.2350, "lng": -51.9253 },
+    "United States": { "lat": 37.0902, "lng": -95.7129 },
+    "Australia": { "lat": -25.2744, "lng": 133.7751 },
+    "India": { "lat": 20.5937, "lng": 78.9629 },
+    "China": { "lat": 35.8617, "lng": 104.1954 },
+    "Japan": { "lat": 36.2048, "lng": 138.2529 },
+    "Indonesia": { "lat": -0.7893, "lng": 113.9213 },
+    "Philippines": { "lat": 12.8797, "lng": 121.7740 },
+    "Mexico": { "lat": 23.6345, "lng": -102.5528 },
+    "Thailand": { "lat": 15.8700, "lng": 100.9925 },
+    "Vietnam": { "lat": 14.0583, "lng": 108.2772 },
+    "Bangladesh": { "lat": 23.6850, "lng": 90.3563 },
+    "Pakistan": { "lat": 30.3753, "lng": 69.3451 },
+    "Iran": { "lat": 32.4279, "lng": 53.6880 },
+    "Turkey": { "lat": 38.9637, "lng": 35.2433 }
+  },
+  "cities": {
+    "Tokyo": { "lat": 35.6762, "lng": 139.6503 },
+    "Jakarta": { "lat": -6.2088, "lng": 106.8456 },
+    "Manila": { "lat": 14.5995, "lng": 120.9842 },
+    "Mumbai": { "lat": 19.0760, "lng": 72.8777 },
+    "Shanghai": { "lat": 31.2304, "lng": 121.4737 },
+    "Los Angeles": { "lat": 34.0522, "lng": -118.2437 },
+    "New York": { "lat": 40.7128, "lng": -74.0060 },
+    "Mexico City": { "lat": 19.4326, "lng": -99.1332 },
+    "São Paulo": { "lat": -23.5505, "lng": -46.6333 },
+    "Bangkok": { "lat": 13.7563, "lng": 100.5018 }
+  }
+}
