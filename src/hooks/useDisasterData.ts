@@ -6,11 +6,13 @@ interface UseDisasterDataOptions {
 }
 
 export function useDisasterData(options: UseDisasterDataOptions = {}) {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Process EMDAT data
   const disasters = useMemo(() => {
+    console.log('Processing disaster data:', options.csvData?.length || 0, 'records');
+    setLoading(false);
     return options.csvData || [];
   }, [options.csvData]);
 
