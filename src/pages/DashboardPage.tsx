@@ -5,12 +5,13 @@ import ChartContainer from '../components/dashboard/ChartContainer';
 import { useDisasterData } from '../hooks/useDisasterData';
 import { DisasterEvent, FilterOptions } from '../types/disaster';
 
-const DashboardPage: React.FC = () => {
-  const { disasters, loading, error } = useDisasterData();
+const DashboardPage: React.FC<{ csvData?: DisasterEvent[] }> = ({ csvData }) => {
+  const { disasters, loading, error } = useDisasterData({ csvData });
   const [filters, setFilters] = useState<FilterOptions>({ types: [] });
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
 
   const chartData = useMemo(() => {
+    console.log('DashboardPage - Processing chart data:', disasters?.length || 0, 'disasters');
     if (!disasters || disasters.length === 0) return null;
 
     const filteredData = disasters.filter(disaster => {
