@@ -23,6 +23,7 @@ export type DisasterType =
   | 'flood'
   | 'hurricane'
   | 'wildfire'
+  | 'tsunami'
   | 'drought'
   | 'volcano'
   | 'other';
