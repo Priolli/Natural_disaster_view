@@ -1,24 +1,39 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
+import { format } from 'date-fns';
+import { AlertTriangle, Download, Filter, X } from 'lucide-react';
 import ChartContainer from '../components/dashboard/ChartContainer';
 import { useDisasterData } from '../hooks/useDisasterData';
-import { AlertTriangle } from 'lucide-react';
+import { DisasterEvent, FilterOptions } from '../types/disaster';
 
 const DashboardPage: React.FC = () => {
   const { disasters, loading, error } = useDisasterData();
+  const [filters, setFilters] = useState<FilterOptions>({ types: [] });
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
 
   const chartData = useMemo(() => {
-    console.log('DashboardPage processing data:', {
-      disastersCount: disasters?.length,
-      hasData: !!disasters,
+    if (!disasters || disasters.length === 0) return null;
+
+    const filteredData = disasters.filter(disaster => {
+      if (filters.types.length > 0 && !filters.types.includes(disaster.type)) {
+        return false;
+      }
+      if (filters.startDate && new Date(disaster.startDate) < new Date(filters.startDate)) {
+        return false;
+      }
+      if (filters.endDate && new Date(disaster.startDate) > new Date(filters.endDate)) {
+        return false;
+      }
+      if (filters.minDeaths && disaster.impact.deaths < filters.minDeaths) {
+        return false;
+      }
+      if (filters.minAffected && (disaster.impact.affected || 0) < (filters.minAffected || 0)) {
+        return false;
+      }
+      return true;
     });
 
-    if (!disasters || disasters.length === 0) {
-      console.log('No disaster data available');
-      return null;
-    }
-
-    // Calculate disasters by type
-    const byType = disasters.reduce((acc: { [key: string]: number }, disaster) => {
+    // Disasters by type
+    const byType = filteredData.reduce((acc: { [key: string]: number }, disaster) => {
       const type = disaster.type.charAt(0).toUpperCase() + disaster.type.slice(1);
       acc[type] = (acc[type] || 0) + 1;
       return acc;
@@ -29,66 +44,73 @@ const DashboardPage: React.FC = () => {
       value,
     }));
 
-    console.log('Disasters by type:', disastersByTypeData);
-
-    // Calculate disaster trend by year
-    const byYear = disasters.reduce((acc: { [key: string]: number }, disaster) => {
-      const year = new Date(disaster.startDate).getFullYear().toString();
+    // Disasters by year
+    const byYear = filteredData.reduce((acc: { [key: string]: number }, disaster) => {
+      const year = format(new Date(disaster.startDate), 'yyyy');
       acc[year] = (acc[year] || 0) + 1;
       return acc;
     }, {});
 
     const disasterTrendData = Object.entries(byYear)
-      .map(([year, disasters]) => ({
+      .map(([year, count]) => ({
         year,
-        disasters,
+        count,
       }))
       .sort((a, b) => a.year.localeCompare(b.year));
 
-    console.log('Disaster trend data:', disasterTrendData);
+    // Top 10 deadliest events
+    const deadliestEvents = [...filteredData]
+      .sort((a, b) => b.impact.deaths - a.impact.deaths)
+      .slice(0, 10)
+      .map(event => ({
+        name: event.name,
+        deaths: event.impact.deaths,
+        type: event.type,
+      }));
 
-    // Calculate fatalities by disaster type and year
-    const fatalitiesByYear = disasters.reduce((acc: any, disaster) => {
-      const year = new Date(disaster.startDate).getFullYear().toString();
-      if (!acc[year]) acc[year] = {};
-      acc[year][disaster.type] = (acc[year][disaster.type] || 0) + disaster.impact.deaths;
+    // Economic impact by year
+    const economicByYear = filteredData.reduce((acc: { [key: string]: number }, disaster) => {
+      const year = format(new Date(disaster.startDate), 'yyyy');
+      acc[year] = (acc[year] || 0) + (disaster.impact.economicLossUSD || 0);
       return acc;
     }, {});
 
-    const fatalitiesData = Object.entries(fatalitiesByYear).map(([year, types]: [string, any]) => ({
-      year,
-      ...types,
-    }));
+    const economicTrendData = Object.entries(economicByYear)
+      .map(([year, loss]) => ({
+        year,
+        loss: loss / 1000000, // Convert to millions
+      }))
+      .sort((a, b) => a.year.localeCompare(b.year));
 
-    // Calculate impact by region
-    const byRegion = disasters.reduce((acc: any, disaster) => {
-      const region = disaster.location.region || 'Unknown';
-      if (!acc[region]) {
-        acc[region] = {
+    // Impact by disaster type
+    const impactByType = filteredData.reduce((acc: any, disaster) => {
+      const type = disaster.type.charAt(0).toUpperCase() + disaster.type.slice(1);
+      if (!acc[type]) {
+        acc[type] = {
+          deaths: 0,
           affected: 0,
-          economic: 0,
+          economicLoss: 0,
         };
       }
-      acc[region].affected += disaster.impact.affected || 0;
-      acc[region].economic += disaster.impact.economicLossUSD || 0;
+      acc[type].deaths += disaster.impact.deaths;
+      acc[type].affected += disaster.impact.affected || 0;
+      acc[type].economicLoss += disaster.impact.economicLossUSD || 0;
       return acc;
     }, {});
 
-    const impactByRegionData = Object.entries(byRegion).map(([region, data]: [string, any]) => ({
-      region,
-      affected: data.affected,
-      economic: data.economic,
+    const impactByTypeData = Object.entries(impactByType).map(([type, data]: [string, any]) => ({
+      type,
+      ...data,
     }));
-
-    console.log('Chart data generated successfully');
 
     return {
       disastersByTypeData,
       disasterTrendData,
-      fatalitiesData,
-      impactByRegionData,
+      deadliestEvents,
+      economicTrendData,
+      impactByTypeData,
     };
-  }, [disasters]);
+  }, [disasters, filters]);
 
   if (loading) {
     return (
@@ -128,105 +150,123 @@ const DashboardPage: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-gray-800 mb-8">Disaster Analytics Dashboard</h1>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        <ChartContainer
-          title="Disasters by Type"
-          description="Distribution of natural disasters by type"
-          chartType="pie"
-          data={chartData.disastersByTypeData}
-          config={{
-            pies: {
-              dataKey: 'value',
-              nameKey: 'name',
-              colors: ['#EF4444', '#3B82F6', '#8B5CF6', '#F97316', '#06B6D4', '#EAB308', '#DC2626'],
-            },
-          }}
-        />
-        
-        <ChartContainer
-          title="Disaster Trend"
-          description="Annual number of recorded natural disasters"
-          chartType="line"
-          data={chartData.disasterTrendData}
-          config={{
-            xAxisKey: 'year',
-            lines: [
-              {
-                dataKey: 'disasters',
-                stroke: '#6366F1',
-                name: 'Number of Disasters',
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="container mx-auto px-4">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">Disaster Analytics Dashboard</h1>
+            <p className="text-gray-600 mt-2">
+              Analyzing {disasters.length.toLocaleString()} disasters from the EMDAT database
+            </p>
+          </div>
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
+              className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              <Filter className="h-5 w-5 mr-2" />
+              Filters
+            </button>
+            <button className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
+              <Download className="h-5 w-5 mr-2" />
+              Export Data
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <ChartContainer
+            title="Disasters by Type"
+            description="Distribution of natural disasters by category"
+            chartType="pie"
+            data={chartData.disastersByTypeData}
+            config={{
+              pies: {
+                dataKey: 'value',
+                nameKey: 'name',
+                colors: ['#EF4444', '#3B82F6', '#8B5CF6', '#F97316', '#06B6D4', '#EAB308', '#DC2626'],
               },
-            ],
-          }}
-        />
-      </div>
-      
-      <div className="mb-8">
-        <ChartContainer
-          title="Fatalities by Disaster Type"
-          description="Annual fatalities from major disaster types"
-          chartType="bar"
-          data={chartData.fatalitiesData}
-          config={{
-            xAxisKey: 'year',
-            bars: [
-              {
-                dataKey: 'earthquake',
-                fill: '#EF4444',
-                name: 'Earthquakes',
-              },
-              {
-                dataKey: 'flood',
-                fill: '#3B82F6',
-                name: 'Floods',
-              },
-              {
-                dataKey: 'hurricane',
-                fill: '#8B5CF6',
-                name: 'Hurricanes',
-              },
-            ],
-          }}
-        />
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <ChartContainer
-          title="Population Affected by Region"
-          description="Total affected population by geographic region"
-          chartType="bar"
-          data={chartData.impactByRegionData}
-          config={{
-            xAxisKey: 'region',
-            bars: [
-              {
-                dataKey: 'affected',
-                fill: '#22C55E',
-                name: 'Affected Population',
-              },
-            ],
-          }}
-        />
-        
-        <ChartContainer
-          title="Economic Impact by Region"
-          description="Economic losses by geographic region (USD)"
-          chartType="bar"
-          data={chartData.impactByRegionData}
-          config={{
-            xAxisKey: 'region',
-            bars: [
-              {
-                dataKey: 'economic',
-                fill: '#F97316',
-                name: 'Economic Losses',
-              },
-            ],
-          }}
-        />
+            }}
+          />
+          
+          <ChartContainer
+            title="Disaster Trend"
+            description="Annual number of recorded disasters"
+            chartType="line"
+            data={chartData.disasterTrendData}
+            config={{
+              xAxisKey: 'year',
+              lines: [
+                {
+                  dataKey: 'count',
+                  stroke: '#6366F1',
+                  name: 'Number of Disasters',
+                },
+              ],
+            }}
+          />
+        </div>
+
+        <div className="mb-8">
+          <ChartContainer
+            title="Top 10 Deadliest Events"
+            description="Events with highest recorded fatalities"
+            chartType="bar"
+            data={chartData.deadliestEvents}
+            height={400}
+            config={{
+              xAxisKey: 'name',
+              bars: [
+                {
+                  dataKey: 'deaths',
+                  fill: '#EF4444',
+                  name: 'Deaths',
+                },
+              ],
+            }}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <ChartContainer
+            title="Economic Impact Over Time"
+            description="Annual economic losses in millions USD"
+            chartType="line"
+            data={chartData.economicTrendData}
+            config={{
+              xAxisKey: 'year',
+              lines: [
+                {
+                  dataKey: 'loss',
+                  stroke: '#22C55E',
+                  name: 'Economic Loss (Millions USD)',
+                },
+              ],
+            }}
+          />
+
+          <ChartContainer
+            title="Impact by Disaster Type"
+            description="Deaths and affected population by disaster category"
+            chartType="bar"
+            data={chartData.impactByTypeData}
+            config={{
+              xAxisKey: 'type',
+              bars: [
+                {
+                  dataKey: 'deaths',
+                  fill: '#EF4444',
+                  name: 'Deaths',
+                },
+                {
+                  dataKey: 'affected',
+                  fill: '#3B82F6',
+                  name: 'Affected',
+                },
+              ],
+            }}
+          />
+        </div>
       </div>
     </div>
   );
