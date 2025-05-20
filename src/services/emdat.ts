@@ -139,6 +139,67 @@ function mapDisasterType(type: string, subtype?: string): DisasterEvent['type'] 
   const normalizedType = (type || '').trim().toLowerCase();
   const normalizedSubtype = (subtype || '').trim().toLowerCase();
 
+  // Define comprehensive type mappings
+  const typeMap: { [key: string]: DisasterEvent['type'] } = {
+    // Earthquake related
+    'earthquake': 'earthquake',
+    'seismic activity': 'earthquake',
+    'ground movement': 'earthquake',
+    'seismic': 'earthquake',
+    'quake': 'earthquake',
+
+    // Flood related
+    'flood': 'flood',
+    'flooding': 'flood',
+    'flash flood': 'flood',
+    'riverine flood': 'flood',
+    'coastal flood': 'flood',
+    'storm surge': 'flood',
+    'inundation': 'flood',
+
+    // Hurricane/Storm related
+    'storm': 'hurricane',
+    'tropical cyclone': 'hurricane',
+    'hurricane': 'hurricane',
+    'typhoon': 'hurricane',
+    'cyclone': 'hurricane',
+    'tornado': 'hurricane',
+    'wind storm': 'hurricane',
+
+    // Tsunami related
+    'tsunami': 'tsunami',
+    'tidal wave': 'tsunami',
+    'seismic wave': 'tsunami',
+
+    // Volcano related
+    'volcanic': 'volcano',
+    'volcano': 'volcano',
+    'eruption': 'volcano',
+    'volcanic activity': 'volcano',
+    'volcanic eruption': 'volcano',
+    'lava': 'volcano',
+
+    // Drought related
+    'drought': 'drought',
+    'dry spell': 'drought',
+    'water deficit': 'drought',
+
+    // Wildfire related
+    'fire': 'wildfire',
+    'wildfire': 'wildfire',
+    'forest fire': 'wildfire',
+    'bush fire': 'wildfire',
+    'grass fire': 'wildfire'
+  };
+
+  // Check both type and subtype against the mapping
+  for (const [key, value] of Object.entries(typeMap)) {
+    if (normalizedType.includes(key) || normalizedSubtype.includes(key)) {
+      return value;
+    }
+  }
+
+  // Special case handling for complex types
   if (normalizedType.includes('drought') || normalizedSubtype.includes('drought')) {
     return 'drought';
   }
@@ -147,27 +208,11 @@ function mapDisasterType(type: string, subtype?: string): DisasterEvent['type'] 
     return 'wildfire';
   }
 
-  const typeMap: { [key: string]: DisasterEvent['type'] } = {
-    'earthquake': 'earthquake',
-    'seismic activity': 'earthquake',
-    'ground movement': 'earthquake',
-    'flood': 'flood',
-    'flooding': 'flood',
-    'flash flood': 'flood',
-    'storm': 'hurricane',
-    'tropical cyclone': 'hurricane',
-    'hurricane': 'hurricane',
-    'tsunami': 'tsunami',
-    'volcanic activity': 'volcano',
-    'volcanic eruption': 'volcano',
-  };
-
-  for (const [key, value] of Object.entries(typeMap)) {
-    if (normalizedType.includes(key) || normalizedSubtype.includes(key)) {
-      return value;
-    }
+  if (normalizedType.includes('tsunami') || normalizedSubtype.includes('tsunami')) {
+    return 'tsunami';
   }
 
+  // If no match found, return 'other'
   return 'other';
 }
 
