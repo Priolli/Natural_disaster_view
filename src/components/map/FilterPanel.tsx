@@ -20,7 +20,6 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
     { label: 'Flood', value: 'flood', color: 'bg-flood' },
     { label: 'Hurricane', value: 'hurricane', color: 'bg-hurricane' },
     { label: 'Wildfire', value: 'wildfire', color: 'bg-wildfire' },
-    { label: 'Tsunami', value: 'tsunami', color: 'bg-tsunami' },
     { label: 'Drought', value: 'drought', color: 'bg-drought' },
     { label: 'Volcano', value: 'volcano', color: 'bg-volcano' },
   ];
