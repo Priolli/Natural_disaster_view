@@ -103,6 +103,45 @@ const DashboardPage: React.FC<{ csvData?: DisasterEvent[] }> = ({ csvData }) => 
       ...data,
     }));
 
+    // Country distribution data
+    const byCountry = filteredData.reduce((acc: { [key: string]: { [key: string]: number } }, disaster) => {
+      const country = disaster.location.country;
+      const type = disaster.type.charAt(0).toUpperCase() + disaster.type.slice(1);
+      
+      if (!acc[country]) {
+        acc[country] = {};
+      }
+      acc[country][type] = (acc[country][type] || 0) + 1;
+      return acc;
+    }, {});
+
+    const countryDistributionData = Object.entries(byCountry)
+      .map(([country, types]) => ({
+        country,
+        ...types,
+        total: Object.values(types).reduce((sum, count) => sum + count, 0),
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 15); // Top 15 countries
+
+    // Monthly distribution data
+    const byMonth = filteredData.reduce((acc: { [key: string]: { [key: string]: number } }, disaster) => {
+      const month = format(new Date(disaster.startDate), 'MMM');
+      const type = disaster.type.charAt(0).toUpperCase() + disaster.type.slice(1);
+      
+      if (!acc[month]) {
+        acc[month] = {};
+      }
+      acc[month][type] = (acc[month][type] || 0) + 1;
+      return acc;
+    }, {});
+
+    const monthlyDistributionData = Object.entries(byMonth).map(([month, types]) => ({
+      month,
+      ...types,
+      total: Object.values(types).reduce((sum, count) => sum + count, 0),
+    }));
+
     // Calculate total statistics
     const totalStats = {
       events: filteredData.length,
@@ -122,6 +161,8 @@ const DashboardPage: React.FC<{ csvData?: DisasterEvent[] }> = ({ csvData }) => 
       deadliestEvents,
       economicTrendData,
       impactByTypeData,
+      countryDistributionData,
+      monthlyDistributionData,
       totalStats,
     };
   }, [disasters, filters]);
@@ -293,7 +334,7 @@ const DashboardPage: React.FC<{ csvData?: DisasterEvent[] }> = ({ csvData }) => 
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <ChartContainer
             title="Economic Impact Over Time"
             description="Annual economic losses in millions USD"
@@ -330,6 +371,47 @@ const DashboardPage: React.FC<{ csvData?: DisasterEvent[] }> = ({ csvData }) => 
                   name: 'Affected',
                 },
               ],
+            }}
+          />
+        </div>
+
+        {/* New Charts */}
+        <div className="mb-8">
+          <ChartContainer
+            title="Disaster Distribution by Country"
+            description="Top 15 countries by number of disasters"
+            chartType="bar"
+            data={chartData.countryDistributionData}
+            height={500}
+            config={{
+              xAxisKey: 'country',
+              bars: Object.keys(chartData.countryDistributionData[0] || {})
+                .filter(key => key !== 'country' && key !== 'total')
+                .map((type, index) => ({
+                  dataKey: type,
+                  fill: ['#EF4444', '#3B82F6', '#8B5CF6', '#F97316', '#06B6D4', '#EAB308', '#DC2626'][index % 7],
+                  name: type,
+                })),
+            }}
+          />
+        </div>
+
+        <div className="mb-8">
+          <ChartContainer
+            title="Monthly Distribution of Disasters"
+            description="Seasonal patterns of different disaster types"
+            chartType="bar"
+            data={chartData.monthlyDistributionData}
+            height={400}
+            config={{
+              xAxisKey: 'month',
+              bars: Object.keys(chartData.monthlyDistributionData[0] || {})
+                .filter(key => key !== 'month' && key !== 'total')
+                .map((type, index) => ({
+                  dataKey: type,
+                  fill: ['#EF4444', '#3B82F6', '#8B5CF6', '#F97316', '#06B6D4', '#EAB308', '#DC2626'][index % 7],
+                  name: type,
+                })),
             }}
           />
         </div>
