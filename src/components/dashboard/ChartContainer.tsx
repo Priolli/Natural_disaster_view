@@ -279,7 +279,7 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
       }`}
     >
       {isExpanded && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setIsExpanded(false)} />
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-40\" onClick={() => setIsExpanded(false)} />
       )}
       
       <div className="p-6">
