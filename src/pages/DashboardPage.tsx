@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { format } from 'date-fns';
-import { AlertTriangle, Download, Filter, X } from 'lucide-react';
+import { AlertTriangle, Download, Filter, X, RefreshCw } from 'lucide-react';
 import ChartContainer from '../components/dashboard/ChartContainer';
 import { useDisasterData } from '../hooks/useDisasterData';
 import { DisasterEvent, FilterOptions } from '../types/disaster';
@@ -11,7 +11,6 @@ const DashboardPage: React.FC<{ csvData?: DisasterEvent[] }> = ({ csvData }) => 
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
 
   const chartData = useMemo(() => {
-    console.log('DashboardPage - Processing chart data:', disasters?.length || 0, 'disasters');
     if (!disasters || disasters.length === 0) return null;
 
     const filteredData = disasters.filter(disaster => {
@@ -104,12 +103,26 @@ const DashboardPage: React.FC<{ csvData?: DisasterEvent[] }> = ({ csvData }) => 
       ...data,
     }));
 
+    // Calculate total statistics
+    const totalStats = {
+      events: filteredData.length,
+      deaths: filteredData.reduce((sum, d) => sum + d.impact.deaths, 0),
+      affected: filteredData.reduce((sum, d) => sum + (d.impact.affected || 0), 0),
+      economicLoss: filteredData.reduce((sum, d) => sum + (d.impact.economicLossUSD || 0), 0),
+      countries: new Set(filteredData.map(d => d.location.country)).size,
+      dateRange: {
+        start: format(new Date(Math.min(...filteredData.map(d => new Date(d.startDate).getTime()))), 'yyyy'),
+        end: format(new Date(Math.max(...filteredData.map(d => new Date(d.startDate).getTime()))), 'yyyy'),
+      },
+    };
+
     return {
       disastersByTypeData,
       disasterTrendData,
       deadliestEvents,
       economicTrendData,
       impactByTypeData,
+      totalStats,
     };
   }, [disasters, filters]);
 
@@ -117,7 +130,7 @@ const DashboardPage: React.FC<{ csvData?: DisasterEvent[] }> = ({ csvData }) => 
     return (
       <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <RefreshCw className="h-12 w-12 animate-spin text-primary-600 mx-auto mb-4" />
           <p className="text-gray-600">Loading dashboard data...</p>
         </div>
       </div>
@@ -150,31 +163,71 @@ const DashboardPage: React.FC<{ csvData?: DisasterEvent[] }> = ({ csvData }) => 
     );
   }
 
+  const formatNumber = (num: number): string => {
+    if (num >= 1000000000) {
+      return `${(num / 1000000000).toFixed(1)}B`;
+    }
+    if (num >= 1000000) {
+      return `${(num / 1000000).toFixed(1)}M`;
+    }
+    if (num >= 1000) {
+      return `${(num / 1000).toFixed(1)}K`;
+    }
+    return num.toString();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">Disaster Analytics Dashboard</h1>
-            <p className="text-gray-600 mt-2">
-              Analyzing {disasters.length.toLocaleString()} disasters from the EMDAT database
-            </p>
+        {/* Header with Statistics */}
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800">Disaster Analytics Dashboard</h1>
+              <p className="text-gray-600 mt-2">
+                Analyzing data from {chartData.totalStats.dateRange.start} to {chartData.totalStats.dateRange.end}
+              </p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
+                className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                <Filter className="h-5 w-5 mr-2" />
+                Filters
+              </button>
+              <button className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
+                <Download className="h-5 w-5 mr-2" />
+                Export Data
+              </button>
+            </div>
           </div>
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
-              className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              <Filter className="h-5 w-5 mr-2" />
-              Filters
-            </button>
-            <button className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
-              <Download className="h-5 w-5 mr-2" />
-              Export Data
-            </button>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="text-sm text-gray-500 mb-1">Total Events</div>
+              <div className="text-2xl font-bold text-gray-900">{formatNumber(chartData.totalStats.events)}</div>
+              <div className="text-xs text-gray-500 mt-1">Across {chartData.totalStats.countries} countries</div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="text-sm text-gray-500 mb-1">Total Deaths</div>
+              <div className="text-2xl font-bold text-red-600">{formatNumber(chartData.totalStats.deaths)}</div>
+              <div className="text-xs text-gray-500 mt-1">Recorded fatalities</div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="text-sm text-gray-500 mb-1">People Affected</div>
+              <div className="text-2xl font-bold text-blue-600">{formatNumber(chartData.totalStats.affected)}</div>
+              <div className="text-xs text-gray-500 mt-1">Total affected population</div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="text-sm text-gray-500 mb-1">Economic Loss</div>
+              <div className="text-2xl font-bold text-green-600">${formatNumber(chartData.totalStats.economicLoss)}</div>
+              <div className="text-xs text-gray-500 mt-1">Total damages in USD</div>
+            </div>
           </div>
         </div>
 
+        {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <ChartContainer
             title="Disasters by Type"

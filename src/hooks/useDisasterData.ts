@@ -11,9 +11,21 @@ export function useDisasterData(options: UseDisasterDataOptions = {}) {
 
   // Process EMDAT data
   const disasters = useMemo(() => {
-    console.log('useDisasterData hook - Processing data:', options.csvData?.length || 0, 'records');
-    setLoading(false);
-    return options.csvData || [];
+    if (!options.csvData) {
+      setLoading(false);
+      return [];
+    }
+
+    try {
+      console.log('Processing', options.csvData.length, 'disaster records');
+      setLoading(false);
+      return options.csvData;
+    } catch (err) {
+      console.error('Error processing disaster data:', err);
+      setError('Failed to process disaster data');
+      setLoading(false);
+      return [];
+    }
   }, [options.csvData]);
 
   return {
