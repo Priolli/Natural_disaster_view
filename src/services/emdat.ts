@@ -30,11 +30,39 @@ function parseDate(dateStr: string): Date | null {
   return null;
 }
 
+function isNaturalDisaster(type: string, subtype?: string): boolean {
+  const t = (type || '').toLowerCase();
+  const s = (subtype || '').toLowerCase();
+  
+  const naturalDisasters = [
+    'earthquake',
+    'flood',
+    'storm',
+    'hurricane',
+    'typhoon',
+    'cyclone',
+    'tornado',
+    'tsunami',
+    'volcanic',
+    'volcano',
+    'drought',
+    'wildfire',
+    'forest fire',
+    'landslide',
+    'avalanche',
+    'extreme temperature',
+    'cold wave',
+    'heat wave'
+  ];
+
+  return naturalDisasters.some(d => t.includes(d) || s.includes(d));
+}
+
 function parseFinancialValue(value: string | undefined): number | undefined {
   if (!value || value.trim() === '') return undefined;
 
-  // Remove any currency symbols and commas
-  const cleanValue = value.replace(/[$,]/g, '').trim();
+  // Remove any currency symbols, commas, and spaces
+  const cleanValue = value.replace(/[$,\s]/g, '').trim();
   
   // Convert to number
   const numValue = parseFloat(cleanValue);
@@ -43,6 +71,11 @@ function parseFinancialValue(value: string | undefined): number | undefined {
 
 export function transformEmdatRecord(record: { [key: string]: string }, index: number): DisasterEvent | null {
   try {
+    // Check if it's a natural disaster
+    if (!isNaturalDisaster(record['Disaster Type'], record['Disaster Subtype'])) {
+      return null;
+    }
+
     // Extract coordinates from record
     const lat = parseFloat(record['Latitude'] || '0');
     const lng = parseFloat(record['Longitude'] || '0');
