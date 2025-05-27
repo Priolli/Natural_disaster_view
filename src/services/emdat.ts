@@ -58,6 +58,14 @@ export function transformEmdatRecord(record: { [key: string]: string }, index: n
 
     const endDate = record['End Date'] ? parseDate(record['End Date']) : undefined;
 
+    // Parse economic loss with fallbacks
+    let economicLossUSD = 0;
+    if (record['Total Damages (\'000 US$)']) {
+      economicLossUSD = parseFloat(record['Total Damages (\'000 US$)']) * 1000;
+    } else if (record['Total Damages, Adjusted (\'000 US$)']) {
+      economicLossUSD = parseFloat(record['Total Damages, Adjusted (\'000 US$)']) * 1000;
+    }
+
     return {
       id: `emdat-${record['Disaster No'] || index}`,
       name: record['Event Name'] || `${record['Disaster Type']} in ${record['Country']}`,
@@ -75,7 +83,7 @@ export function transformEmdatRecord(record: { [key: string]: string }, index: n
         deaths: parseInt(record['Total Deaths'] || '0') || 0,
         injured: parseInt(record['No Injured'] || '0') || undefined,
         affected: parseInt(record['Total Affected'] || '0') || undefined,
-        economicLossUSD: parseFloat(record['Total Damages (\'000 US$)']) * 1000 || undefined,
+        economicLossUSD: economicLossUSD || undefined,
         severityLevel: calculateSeverityLevel(record),
       },
       description: generateDescription(record),
@@ -122,14 +130,18 @@ function generateDescription(record: { [key: string]: string }): string {
   const country = record['Country'];
   const deaths = parseInt(record['Total Deaths'] || '0') || 0;
   const affected = parseInt(record['Total Affected'] || '0') || 0;
+  const economicLoss = parseFloat(record['Total Damages (\'000 US$)']) * 1000 || 0;
   
   let description = `A ${subtype ? `${subtype.toLowerCase()} (${type.toLowerCase()})` : type.toLowerCase()} occurred in ${country}`;
   
   if (deaths) {
-    description += `, resulting in ${deaths} deaths`;
+    description += `, resulting in ${deaths.toLocaleString()} deaths`;
   }
   if (affected) {
-    description += `${deaths ? ' and' : ','} affecting ${affected} people`;
+    description += `${deaths ? ' and' : ','} affecting ${affected.toLocaleString()} people`;
+  }
+  if (economicLoss) {
+    description += `${deaths || affected ? ' with' : ','} economic losses of $${economicLoss.toLocaleString()}`;
   }
   
   return description + '.';

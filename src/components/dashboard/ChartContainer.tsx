@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   BarChart, 
   Bar, 
@@ -14,7 +14,7 @@ import {
   LineChart,
   Line
 } from 'recharts';
-import { Download, Maximize2, MoreHorizontal } from 'lucide-react';
+import { Download, Maximize2, MoreHorizontal, Filter } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
 export type ChartType = 'bar' | 'line' | 'pie';
@@ -43,6 +43,10 @@ interface ChartContainerProps {
     };
   };
   height?: number;
+  filters?: {
+    types?: string[];
+    onTypeChange?: (type: string) => void;
+  };
 }
 
 const ChartContainer: React.FC<ChartContainerProps> = ({
@@ -51,8 +55,11 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
   chartType,
   data,
   config,
-  height = 400
+  height = 400,
+  filters
 }) => {
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(filters?.types || []);
+
   const downloadChart = async () => {
     const chartElement = document.getElementById(`chart-${title.replace(/\s+/g, '-')}`);
     if (chartElement) {
@@ -66,6 +73,21 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
         console.error('Error downloading chart:', error);
       }
     }
+  };
+
+  const handleTypeChange = (type: string) => {
+    const newTypes = selectedTypes.includes(type)
+      ? selectedTypes.filter(t => t !== type)
+      : [...selectedTypes, type];
+    setSelectedTypes(newTypes);
+    filters?.onTypeChange?.(type);
+  };
+
+  const formatYAxisTick = (value: number) => {
+    if (value >= 1000000000) return `${(value / 1000000000).toFixed(1)}B`;
+    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+    if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
+    return value;
   };
 
   const renderChart = () => {
@@ -87,12 +109,21 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
                 top: 20,
                 right: 30,
                 left: 20,
-                bottom: 5,
+                bottom: 60
               }}
             >
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey={config.xAxisKey} />
-              <YAxis />
+              <XAxis 
+                dataKey={config.xAxisKey} 
+                angle={-45}
+                textAnchor="end"
+                interval={0}
+                height={60}
+              />
+              <YAxis 
+                tickFormatter={formatYAxisTick}
+                width={80}
+              />
               <Tooltip 
                 contentStyle={{ 
                   backgroundColor: 'white', 
@@ -100,7 +131,7 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
                   border: 'none',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.15)' 
                 }}
-                formatter={(value) => [`${value}`, '']}
+                formatter={(value: number) => [formatYAxisTick(value), '']}
               />
               <Legend />
               {config.bars?.map((bar, index) => (
@@ -130,7 +161,10 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
             >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey={config.xAxisKey} />
-              <YAxis />
+              <YAxis 
+                tickFormatter={formatYAxisTick}
+                width={80}
+              />
               <Tooltip 
                 contentStyle={{ 
                   backgroundColor: 'white', 
@@ -138,6 +172,7 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
                   border: 'none',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.15)' 
                 }}
+                formatter={(value: number) => [formatYAxisTick(value), '']}
               />
               <Legend />
               {config.lines?.map((line, index) => (
@@ -185,7 +220,7 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
                   border: 'none',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.15)' 
                 }}
-                formatter={(value, name) => [`${value}`, name]}
+                formatter={(value: number) => [formatYAxisTick(value), '']}
               />
               <Legend />
             </PieChart>
@@ -207,6 +242,21 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
           )}
         </div>
         <div className="flex space-x-2">
+          {filters && filters.types && (
+            <div className="flex items-center space-x-2">
+              <Filter className="w-4 h-4 text-gray-500" />
+              <select
+                className="text-sm border border-gray-300 rounded-md p-1"
+                onChange={(e) => handleTypeChange(e.target.value)}
+                value={selectedTypes[0] || ''}
+              >
+                <option value="">All Types</option>
+                {filters.types.map((type) => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <button 
             onClick={downloadChart}
             className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
