@@ -16,6 +16,7 @@ import {
 } from 'recharts';
 import { Download, Maximize2, MoreHorizontal, Filter } from 'lucide-react';
 import html2canvas from 'html2canvas';
+import ChartTooltip from './ChartTooltip';
 
 export type ChartType = 'bar' | 'line' | 'pie';
 
@@ -59,6 +60,7 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
   filters
 }) => {
   const [selectedTypes, setSelectedTypes] = useState<string[]>(filters?.types || []);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const downloadChart = async () => {
     const chartElement = document.getElementById(`chart-${title.replace(/\s+/g, '-')}`);
@@ -87,7 +89,7 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
     if (value >= 1000000000) return `${(value / 1000000000).toFixed(1)}B`;
     if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
     if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
-    return value;
+    return value.toLocaleString();
   };
 
   const renderChart = () => {
@@ -99,10 +101,12 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
       );
     }
 
+    const chartHeight = isExpanded ? window.innerHeight * 0.8 : height;
+
     switch (chartType) {
       case 'bar':
         return (
-          <ResponsiveContainer width="100%" height={height}>
+          <ResponsiveContainer width="100%" height={chartHeight}>
             <BarChart
               data={data}
               margin={{
@@ -112,28 +116,27 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
                 bottom: 60
               }}
             >
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis 
                 dataKey={config.xAxisKey} 
                 angle={-45}
                 textAnchor="end"
                 interval={0}
                 height={60}
+                tick={{ fill: '#6B7280', fontSize: 12 }}
               />
               <YAxis 
                 tickFormatter={formatYAxisTick}
                 width={80}
+                tick={{ fill: '#6B7280', fontSize: 12 }}
               />
               <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'white', 
-                  borderRadius: '8px',
-                  border: 'none',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)' 
-                }}
-                formatter={(value: number) => [formatYAxisTick(value), '']}
+                content={<ChartTooltip formatter={formatYAxisTick} />}
               />
-              <Legend />
+              <Legend 
+                wrapperStyle={{ paddingTop: '20px' }}
+                formatter={(value) => <span className="text-sm text-gray-600">{value}</span>}
+              />
               {config.bars?.map((bar, index) => (
                 <Bar 
                   key={index} 
@@ -141,6 +144,12 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
                   fill={bar.fill} 
                   name={bar.name} 
                   radius={[4, 4, 0, 0]}
+                  label={{ 
+                    position: 'top',
+                    formatter: formatYAxisTick,
+                    fontSize: 10,
+                    fill: '#6B7280'
+                  }}
                 />
               ))}
             </BarChart>
@@ -149,32 +158,33 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
       
       case 'line':
         return (
-          <ResponsiveContainer width="100%" height={height}>
+          <ResponsiveContainer width="100%" height={chartHeight}>
             <LineChart
               data={data}
               margin={{
                 top: 20,
                 right: 30,
                 left: 20,
-                bottom: 5,
+                bottom: 20,
               }}
             >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey={config.xAxisKey} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis 
+                dataKey={config.xAxisKey}
+                tick={{ fill: '#6B7280', fontSize: 12 }}
+              />
               <YAxis 
                 tickFormatter={formatYAxisTick}
                 width={80}
+                tick={{ fill: '#6B7280', fontSize: 12 }}
               />
               <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'white', 
-                  borderRadius: '8px',
-                  border: 'none',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)' 
-                }}
-                formatter={(value: number) => [formatYAxisTick(value), '']}
+                content={<ChartTooltip formatter={formatYAxisTick} />}
               />
-              <Legend />
+              <Legend 
+                wrapperStyle={{ paddingTop: '20px' }}
+                formatter={(value) => <span className="text-sm text-gray-600">{value}</span>}
+              />
               {config.lines?.map((line, index) => (
                 <Line
                   key={index}
@@ -193,7 +203,7 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
       
       case 'pie':
         return (
-          <ResponsiveContainer width="100%" height={height}>
+          <ResponsiveContainer width="100%" height={chartHeight}>
             <PieChart>
               <Pie
                 data={data}
@@ -214,15 +224,11 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
                 ))}
               </Pie>
               <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'white', 
-                  borderRadius: '8px',
-                  border: 'none',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)' 
-                }}
-                formatter={(value: number) => [formatYAxisTick(value), '']}
+                content={<ChartTooltip formatter={formatYAxisTick} />}
               />
-              <Legend />
+              <Legend 
+                formatter={(value) => <span className="text-sm text-gray-600">{value}</span>}
+              />
             </PieChart>
           </ResponsiveContainer>
         );
@@ -233,12 +239,14 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 overflow-hidden">
+    <div className={`bg-white rounded-lg shadow-md p-6 overflow-hidden transition-all duration-300 ${
+      isExpanded ? 'fixed inset-4 z-50' : ''
+    }`}>
       <div className="flex justify-between items-center mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+          <h3 className="text-xl font-semibold text-gray-800">{title}</h3>
           {description && (
-            <p className="text-sm text-gray-500">{description}</p>
+            <p className="text-sm text-gray-500 mt-1">{description}</p>
           )}
         </div>
         <div className="flex space-x-2">
@@ -265,8 +273,9 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
             <Download className="w-5 h-5" />
           </button>
           <button 
+            onClick={() => setIsExpanded(!isExpanded)}
             className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-            title="Expand"
+            title={isExpanded ? "Minimize" : "Expand"}
           >
             <Maximize2 className="w-5 h-5" />
           </button>
