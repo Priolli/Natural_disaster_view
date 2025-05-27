@@ -30,6 +30,17 @@ function parseDate(dateStr: string): Date | null {
   return null;
 }
 
+function parseFinancialValue(value: string | undefined): number | undefined {
+  if (!value || value.trim() === '') return undefined;
+
+  // Remove any currency symbols and commas
+  const cleanValue = value.replace(/[$,]/g, '').trim();
+  
+  // Convert to number
+  const numValue = parseFloat(cleanValue);
+  return isNaN(numValue) ? undefined : numValue;
+}
+
 export function transformEmdatRecord(record: { [key: string]: string }, index: number): DisasterEvent | null {
   try {
     // Extract coordinates from record
@@ -58,18 +69,29 @@ export function transformEmdatRecord(record: { [key: string]: string }, index: n
 
     const endDate = record['End Date'] ? parseDate(record['End Date']) : undefined;
 
-    // Parse economic loss with fallbacks
-    let economicLossUSD = 0;
-    if (record['Total Damages (\'000 US$)']) {
-      economicLossUSD = parseFloat(record['Total Damages (\'000 US$)']) * 1000;
-    } else if (record['Total Damages, Adjusted (\'000 US$)']) {
-      economicLossUSD = parseFloat(record['Total Damages, Adjusted (\'000 US$)']) * 1000;
+    // Parse financial data with fallbacks
+    let economicLossUSD = parseFinancialValue(record['Total Damages (\'000 US$)']);
+    if (economicLossUSD) {
+      economicLossUSD *= 1000; // Convert from thousands to actual USD
+    } else {
+      // Try alternative fields
+      const adjustedDamages = parseFinancialValue(record['Total Damages, Adjusted (\'000 US$)']);
+      if (adjustedDamages) {
+        economicLossUSD = adjustedDamages * 1000;
+      }
+    }
+
+    // Parse insured losses if available
+    let insuredLossUSD = parseFinancialValue(record['Insured Damages (\'000 US$)']);
+    if (insuredLossUSD) {
+      insuredLossUSD *= 1000;
     }
 
     return {
       id: `emdat-${record['Disaster No'] || index}`,
       name: record['Event Name'] || `${record['Disaster Type']} in ${record['Country']}`,
       type: mapDisasterType(record['Disaster Type'], record['Disaster Subtype']),
+      subType: record['Disaster Subtype'] || undefined,
       startDate: startDate.toISOString(),
       endDate: endDate?.toISOString(),
       country: record['Country'],
@@ -83,7 +105,8 @@ export function transformEmdatRecord(record: { [key: string]: string }, index: n
         deaths: parseInt(record['Total Deaths'] || '0') || 0,
         injured: parseInt(record['No Injured'] || '0') || undefined,
         affected: parseInt(record['Total Affected'] || '0') || undefined,
-        economicLossUSD: economicLossUSD || undefined,
+        economicLossUSD,
+        insuredLossUSD,
         severityLevel: calculateSeverityLevel(record),
       },
       description: generateDescription(record),
@@ -130,7 +153,7 @@ function generateDescription(record: { [key: string]: string }): string {
   const country = record['Country'];
   const deaths = parseInt(record['Total Deaths'] || '0') || 0;
   const affected = parseInt(record['Total Affected'] || '0') || 0;
-  const economicLoss = parseFloat(record['Total Damages (\'000 US$)']) * 1000 || 0;
+  const economicLoss = parseFinancialValue(record['Total Damages (\'000 US$)']) || 0;
   
   let description = `A ${subtype ? `${subtype.toLowerCase()} (${type.toLowerCase()})` : type.toLowerCase()} occurred in ${country}`;
   
@@ -141,7 +164,7 @@ function generateDescription(record: { [key: string]: string }): string {
     description += `${deaths ? ' and' : ','} affecting ${affected.toLocaleString()} people`;
   }
   if (economicLoss) {
-    description += `${deaths || affected ? ' with' : ','} economic losses of $${economicLoss.toLocaleString()}`;
+    description += `${deaths || affected ? ' with' : ','} economic losses of $${(economicLoss * 1000).toLocaleString()}`;
   }
   
   return description + '.';
@@ -231,11 +254,36 @@ function mapDisasterType(type: string, subtype?: string): DisasterEvent['type'] 
 function calculateSeverityLevel(record: { [key: string]: string }): 1 | 2 | 3 | 4 | 5 {
   const deaths = parseInt(record['Total Deaths'] || '0') || 0;
   const affected = parseInt(record['Total Affected'] || '0') || 0;
-  const damages = parseFloat(record['Total Damages (\'000 US$)'] || '0') || 0;
+  const damages = parseFinancialValue(record['Total Damages (\'000 US$)']) || 0;
   
-  if (deaths > 10000 || affected > 1000000 || damages > 10000000) return 5;
-  if (deaths > 1000 || affected > 100000 || damages > 1000000) return 4;
-  if (deaths > 100 || affected > 10000 || damages > 100000) return 3;
-  if (deaths > 10 || affected > 1000 || damages > 10000) return 2;
-  return 1;
+  // Calculate severity based on multiple factors
+  let severityScore = 0;
+  
+  // Deaths impact (0-5 points)
+  if (deaths > 10000) severityScore += 5;
+  else if (deaths > 1000) severityScore += 4;
+  else if (deaths > 100) severityScore += 3;
+  else if (deaths > 10) severityScore += 2;
+  else if (deaths > 0) severityScore += 1;
+
+  // Affected population impact (0-5 points)
+  if (affected > 1000000) severityScore += 5;
+  else if (affected > 100000) severityScore += 4;
+  else if (affected > 10000) severityScore += 3;
+  else if (affected > 1000) severityScore += 2;
+  else if (affected > 0) severityScore += 1;
+
+  // Economic impact (0-5 points)
+  const economicLoss = damages * 1000; // Convert to actual USD
+  if (economicLoss > 1000000000) severityScore += 5; // > $1B
+  else if (economicLoss > 100000000) severityScore += 4; // > $100M
+  else if (economicLoss > 10000000) severityScore += 3; // > $10M
+  else if (economicLoss > 1000000) severityScore += 2; // > $1M
+  else if (economicLoss > 0) severityScore += 1;
+
+  // Calculate final severity level (1-5)
+  const maxPossibleScore = 15; // 5 points each for deaths, affected, and economic impact
+  const normalizedScore = Math.ceil((severityScore / maxPossibleScore) * 5);
+  
+  return Math.max(1, Math.min(5, normalizedScore)) as 1 | 2 | 3 | 4 | 5;
 }
