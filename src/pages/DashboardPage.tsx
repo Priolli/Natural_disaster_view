@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { format } from 'date-fns';
-import { AlertTriangle, Download, Filter, X, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Download, Filter, X, RefreshCw, Calendar, Users, DollarSign, Globe } from 'lucide-react';
 import ChartContainer from '../components/dashboard/ChartContainer';
 import { useDisasterData } from '../hooks/useDisasterData';
 import { DisasterEvent, FilterOptions } from '../types/disaster';
@@ -204,23 +204,35 @@ const DashboardPage: React.FC<{ csvData?: DisasterEvent[] }> = ({ csvData }) => 
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="text-sm text-gray-500 mb-1">Total Events</div>
+            <div className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-center mb-2">
+                <Calendar className="h-5 w-5 text-primary-600 mr-2" />
+                <div className="text-sm text-gray-500">Total Events</div>
+              </div>
               <div className="text-2xl font-bold text-gray-900">{formatNumber(chartData.totalStats.events)}</div>
               <div className="text-xs text-gray-500 mt-1">Across {chartData.totalStats.countries} countries</div>
             </div>
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="text-sm text-gray-500 mb-1">Total Deaths</div>
+            <div className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-center mb-2">
+                <AlertTriangle className="h-5 w-5 text-red-600 mr-2" />
+                <div className="text-sm text-gray-500">Total Deaths</div>
+              </div>
               <div className="text-2xl font-bold text-red-600">{formatNumber(chartData.totalStats.deaths)}</div>
               <div className="text-xs text-gray-500 mt-1">Recorded fatalities</div>
             </div>
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="text-sm text-gray-500 mb-1">People Affected</div>
+            <div className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-center mb-2">
+                <Users className="h-5 w-5 text-blue-600 mr-2" />
+                <div className="text-sm text-gray-500">People Affected</div>
+              </div>
               <div className="text-2xl font-bold text-blue-600">{formatNumber(chartData.totalStats.affected)}</div>
               <div className="text-xs text-gray-500 mt-1">Total affected population</div>
             </div>
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="text-sm text-gray-500 mb-1">Economic Loss</div>
+            <div className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-center mb-2">
+                <DollarSign className="h-5 w-5 text-green-600 mr-2" />
+                <div className="text-sm text-gray-500">Economic Loss</div>
+              </div>
               <div className="text-2xl font-bold text-green-600">${formatNumber(chartData.totalStats.economicLoss)}</div>
               <div className="text-xs text-gray-500 mt-1">Total damages in USD</div>
             </div>
